@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using System.Threading;
 using System.Windows.Forms;
 using RAGENativeUI;
 using RAGENativeUI.Elements;
@@ -328,6 +329,10 @@ internal static class MainMenu
         }
         catch (Exception e)
         {
+            if(e is ThreadAbortException) {
+                // Expected on game exit, no need to log
+                return;
+            }
             Error(e);
         }
     }
