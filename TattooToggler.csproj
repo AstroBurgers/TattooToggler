@@ -55,10 +55,12 @@
     <ItemGroup>
         <Compile Include="Engine\Data\Collection.cs" />
         <Compile Include="Engine\Data\Decoration.cs" />
+        <Compile Include="Engine\Helpers\KeybindHelpers.cs" />
         <Compile Include="Engine\Helpers\Logging.cs" />
         <Compile Include="Engine\Helpers\TattooHelpers.cs" />
         <Compile Include="Engine\UI\MainMenu.cs" />
         <Compile Include="GlobalUsings.cs" />
+        <Compile Include="IO\Configuration\INIFile.cs" />
         <Compile Include="IO\JSON\DumpParser.cs" />
         <Compile Include="IO\JSON\SavedTattoosManager.cs" />
         <Compile Include="Main.cs" />
@@ -66,9 +68,6 @@
     </ItemGroup>
     <ItemGroup>
       <None Include="packages.config" />
-    </ItemGroup>
-    <ItemGroup>
-      <Folder Include="Engine\Internal\" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

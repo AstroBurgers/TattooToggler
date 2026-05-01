@@ -1,3 +1,4 @@
+using TattooToggler.Engine.Data;
 using TattooToggler.IO.JSON;
 using static TattooToggler.Engine.Data.Collection;
 
@@ -8,29 +9,64 @@ namespace TattooToggler;
 public class EntryPoint
 {
     internal static Ped MainPlayer => Game.LocalPlayer.Character;
-    
-    
+
+
     internal static void Main()
     {
+        Normal("=== TattooToggler initializing ===");
+
         try
         {
-            Game.DisplayNotification("go fuck yourself :)");
-            Collections = IO.JSON.TattooDataParser.ParseFromFile(@"plugins/TattooToggler/TattooData/TattooData.json");
-            Game.DisplayNotification($"Parsed: {Collections}");
+            Notify("Loading TattooToggler...", true);
+
+            // 1. Tattoo data
+            Normal("Parsing tattoo data...");
+            Collections = TattooDataParser.ParseFromFile(@"plugins/TattooToggler/TattooData/TattooData.json");
+
+            if (Collections == null)
+                throw new Exception("Tattoo collections failed to load.");
+
+            Normal($"Tattoo data loaded. Collections: {Collections.Count}");
+
+            // 2. Config
+            Normal("Loading INI...");
+            IO.Configuration.INIFile.LoadIni();
+            Normal("INI loaded.");
+
+            // 3. UI
+            Normal("Creating menu...");
             Engine.UI.MainMenu.CreateMenu();
-            
-            // Apply saved tattoos
-            List<Decoration> saved = SavedTattoosManager.Load(Engine.UI.MainMenu.GetPlayerGender());
+            Normal("Menu created.");
+
+            // 4. Saved tattoos
+            Gender gender = Engine.UI.MainMenu.GetPlayerGender();
+            Normal($"Detected player gender: {gender}");
+
+            List<Decoration> saved = SavedTattoosManager.Load(gender);
+
+            Normal($"Applying {saved.Count} saved tattoos...");
 
             foreach (Decoration tattoo in saved)
             {
-                MainPlayer.AddTattoo(Game.GetHashKey(tattoo.CollectionName), Game.GetHashKey(tattoo.OverlayName));
+                MainPlayer.AddTattoo(
+                    Game.GetHashKey(tattoo.CollectionName),
+                    Game.GetHashKey(tattoo.OverlayName)
+                );
             }
+
+            Notify("TattooToggler loaded successfully.", true);
+            Normal("=== TattooToggler initialized successfully ===");
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
-            throw;
+            Error(e);
+            Notify("TattooToggler failed to load. Check log.", false);
         }
+    }
+
+    private static void Notify(string message, bool success)
+    {
+        string prefix = success ? "~g~TattooToggler~s~" : "~r~TattooToggler~s~";
+        Game.DisplayNotification($"{prefix}: {message}");
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using TattooToggler.Engine.Data;
 
 namespace TattooToggler.IO.JSON;
 
@@ -52,8 +53,8 @@ internal static class TattooDataParser
                     collectionName: collectionName
                 );
 
-                Normal(
-                    $"Adding decoration: Name={decoration.OverlayName}, Hash={decoration.OverlayHash}, Zone={decoration.ZoneName}, Gender={decoration.Gender}, Type={decoration.Type}, Price={decoration.Price}, AwardLevel={decoration.AwardLevel}, Garment={decoration.Garment ?? "N/A"}");
+                //Normal(
+                //    $"Adding decoration: Name={decoration.OverlayName}, Hash={decoration.OverlayHash}, Zone={decoration.ZoneName}, Gender={decoration.Gender}, Type={decoration.Type}, Price={decoration.Price}, AwardLevel={decoration.AwardLevel}, Garment={decoration.Garment ?? "N/A"}");
                 overlays.Add(decoration);
             }
                 

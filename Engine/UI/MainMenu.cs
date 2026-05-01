@@ -3,6 +3,7 @@ using System.Windows.Forms;
 using RAGENativeUI;
 using RAGENativeUI.Elements;
 using RAGENativeUI.PauseMenu;
+using TattooToggler.Engine.Data;
 using TattooToggler.IO.JSON;
 using static TattooToggler.EntryPoint;
 
@@ -295,22 +296,22 @@ internal static class MainMenu
             {
                 GameFiber.Yield();
                 MainMenuPool.ProcessMenus();
-                if (!Game.IsKeyDown(Keys.K))
-                    continue; // If the button defined in the INI Is pressed trigger the IF State meant
-                if (MenuRequirements()) // Checking menu requirements defined below
+                if (!KeybindHelpers.AreMenuKeysPressed())
+                    continue;
+                if (MenuRequirements()) 
                 {
                     if (GetPlayerGender() != LastPlayerGender)
                     {
                         LastPlayerGender = GetPlayerGender();
                         LoadTattoosByZone(Collection.Collections);
                     }
-                    MainUiMenu.Visible = true; // Making the menu visible
+                    MainUiMenu.Visible = true; 
                 }
                 else if (MainUiMenu.Visible)
                 {
                     MainUiMenu.CurrentItem.Selected = false;
-
-                    MainUiMenu.Visible = false; // Making the menu no longer visible
+                    MainUiMenu.Visible = false;
+                    RefreshTattoos();
                 }
             }
         }

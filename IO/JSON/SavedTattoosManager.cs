@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using TattooToggler.Engine.Data;
 
 namespace TattooToggler.IO.JSON
 {
@@ -34,7 +35,7 @@ namespace TattooToggler.IO.JSON
         {
             try
             {
-                Logger.Normal($"[SavedTattoosManager] Saving {tattoos.Count} tattoos for gender: {gender}");
+                Normal($"[SavedTattoosManager] Saving {tattoos.Count} tattoos for gender: {gender}");
 
                 SaveFile file = LoadFile();
                 SaveSlot slot = GetSlot(file, gender);
@@ -47,11 +48,11 @@ namespace TattooToggler.IO.JSON
                 });
 
                 WriteFile(file);
-                Logger.Normal($"[SavedTattoosManager] Save successful for gender: {gender}");
+                Normal($"[SavedTattoosManager] Save successful for gender: {gender}");
             }
             catch (Exception e)
             {
-                Logger.Error(e);
+                Error(e);
             }
         }
 
@@ -59,14 +60,14 @@ namespace TattooToggler.IO.JSON
         {
             try
             {
-                Logger.Normal($"[SavedTattoosManager] Loading saved tattoos for gender: {gender}");
+                Normal($"[SavedTattoosManager] Loading saved tattoos for gender: {gender}");
 
                 SaveFile file = LoadFile();
                 SaveSlot slot = GetSlot(file, gender);
 
                 if (slot.Tattoos.Count == 0)
                 {
-                    Logger.Normal($"[SavedTattoosManager] No saved tattoos found for gender: {gender}");
+                    Normal($"[SavedTattoosManager] No saved tattoos found for gender: {gender}");
                     return new List<Decoration>();
                 }
 
@@ -98,16 +99,16 @@ namespace TattooToggler.IO.JSON
                 }
 
                 if (unresolved.Count > 0)
-                    Logger.Normal(
+                    Normal(
                         $"[SavedTattoosManager] {unresolved.Count} saved tattoos could not be resolved against master list (addon tattoos or outdated save) — applying raw");
 
                 resolved.AddRange(unresolved);
-                Logger.Normal($"[SavedTattoosManager] Loaded {resolved.Count} tattoos for gender: {gender}");
+                Normal($"[SavedTattoosManager] Loaded {resolved.Count} tattoos for gender: {gender}");
                 return resolved;
             }
             catch (Exception e)
             {
-                Logger.Error(e);
+                Error(e);
                 return new List<Decoration>();
             }
         }
@@ -129,14 +130,14 @@ namespace TattooToggler.IO.JSON
         {
             try
             {
-                Logger.Normal($"[SavedTattoosManager] Clearing save slot for gender: {gender}");
+                Normal($"[SavedTattoosManager] Clearing save slot for gender: {gender}");
                 SaveFile file = LoadFile();
                 GetSlot(file, gender).Tattoos.Clear();
                 WriteFile(file);
             }
             catch (Exception e)
             {
-                Logger.Error(e);
+                Error(e);
             }
         }
 
@@ -144,12 +145,12 @@ namespace TattooToggler.IO.JSON
         {
             try
             {
-                Logger.Normal("[SavedTattoosManager] Clearing all save slots");
+                Normal("[SavedTattoosManager] Clearing all save slots");
                 WriteFile(new SaveFile());
             }
             catch (Exception e)
             {
-                Logger.Error(e);
+                Error(e);
             }
         }
 
