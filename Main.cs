@@ -1,3 +1,4 @@
+using System.Windows.Forms;
 using TattooToggler.Engine.Data;
 using TattooToggler.IO.JSON;
 using static TattooToggler.Engine.Data.Collection;
@@ -43,7 +44,7 @@ public class EntryPoint
             Normal($"Detected player gender: {gender}");
 
             List<Decoration> saved = SavedTattoosManager.Load(gender);
-
+            Engine.UI.MainMenu.CurrentTattoos = saved; // Set current tattoos to the loaded ones so the menu can reflect them
             Normal($"Applying {saved.Count} saved tattoos...");
 
             foreach (Decoration tattoo in saved)
