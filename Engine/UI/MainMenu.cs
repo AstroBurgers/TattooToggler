@@ -62,11 +62,11 @@ internal static class MainMenu
 
         return modelHash == maleHash ? Gender.GENDER_MALE : Gender.GENDER_FEMALE;
     }
-    
+
     #endregion
 
     internal static Gender LastPlayerGender { get; set; }
-    
+
     internal static UIMenuListScrollerItem<string> HeadZoneScroller { get; private set; }
     internal static UIMenuListScrollerItem<string> TorsoZoneScroller { get; private set; }
     internal static UIMenuListScrollerItem<string> LeftArmZoneScroller { get; private set; }
@@ -82,10 +82,10 @@ internal static class MainMenu
 
     internal static readonly UIMenuItem ClearSavedTattoosItem =
         new("Clear Saved Tattoos", "Clear your saved tattoos for your current gender");
-    
+
     internal static readonly UIMenuItem ApplySavedTattoosItem =
         new("Apply Saved Tattoos", "Apply your saved tattoos for your current gender");
-    
+
     internal static readonly UIMenu MainUiMenu = new("Tattoo Toggler", "Select a tattoo to toggle it on/off");
     internal static readonly MenuPool MainMenuPool = new();
 
@@ -114,20 +114,21 @@ internal static class MainMenu
             RightLegTattoos.Select(t => t.OverlayName).ToList());
 
         LastPlayerGender = GetPlayerGender();
-        
+
         MainMenuPool.Add(MainUiMenu);
 
         MainUiMenu.MouseControlsEnabled = false;
         MainUiMenu.AllowCameraMovement = true;
 
         MainUiMenu.AddItems(HeadZoneScroller, TorsoZoneScroller, LeftArmZoneScroller, RightArmZoneScroller,
-            LeftLegZoneScroller, RightLegZoneScroller, ApplySavedTattoosItem, SaveTattoosItem, RemoveAllTattoosItem, ClearSavedTattoosItem);
+            LeftLegZoneScroller, RightLegZoneScroller, ApplySavedTattoosItem, SaveTattoosItem, RemoveAllTattoosItem,
+            ClearSavedTattoosItem);
 
         ApplySavedTattoosItem.BackColor = Color.DarkBlue;
         SaveTattoosItem.BackColor = Color.DarkGreen;
         RemoveAllTattoosItem.BackColor = Color.DarkRed;
         ClearSavedTattoosItem.BackColor = Color.DarkRed;
-        
+
         HeadZoneScroller.IndexChanged += HeadZoneScrollerOnIndexChanged;
         HeadZoneScroller.Activated += HeadZoneScrollerOnActivated;
 
@@ -158,11 +159,8 @@ internal static class MainMenu
             Game.DisplayNotification($"Tattoos saved for {GetPlayerGender()}.");
         };
 
-        ClearSavedTattoosItem.Activated += (_, _) =>
-        {
-            SavedTattoosManager.ClearSlot(LastPlayerGender);
-        };
-        
+        ClearSavedTattoosItem.Activated += (_, _) => { SavedTattoosManager.ClearSlot(LastPlayerGender); };
+
         ApplySavedTattoosItem.Activated += (_, _) =>
         {
             List<Decoration> saved = SavedTattoosManager.Load(GetPlayerGender());
@@ -171,17 +169,18 @@ internal static class MainMenu
                 Game.DisplayNotification($"No saved tattoos found for {GetPlayerGender()}.");
                 return;
             }
+
             CurrentTattoos = saved;
             RefreshTattoos();
         };
-        
+
         GameFiber.StartNew(MenuPoolProcess);
     }
 
     private static void CycleTattoo(int index, ZoneName zoneName)
     {
         RefreshTattoos();
-        
+
         SelectedTattoo = zoneName switch
         {
             ZoneName.ZONE_HEAD => HeadTattoos.ElementAtOrDefault(index),
@@ -199,7 +198,8 @@ internal static class MainMenu
         }
 
         if (SelectedTattoo == null) return;
-        MainPlayer.AddTattoo(Game.GetHashKey(SelectedTattoo.CollectionName), Game.GetHashKey(SelectedTattoo.OverlayName));
+        MainPlayer.AddTattoo(Game.GetHashKey(SelectedTattoo.CollectionName),
+            Game.GetHashKey(SelectedTattoo.OverlayName));
     }
 
     private static void AddTattoo()
@@ -211,6 +211,7 @@ internal static class MainMenu
             RefreshTattoos();
             return;
         }
+
         CurrentTattoos.Add(SelectedTattoo);
     }
 
@@ -222,7 +223,7 @@ internal static class MainMenu
             MainPlayer.AddTattoo(Game.GetHashKey(tattoo.CollectionName), Game.GetHashKey(tattoo.OverlayName));
         }
     }
-    
+
     #region Handlers
 
     private static void RightLegZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
@@ -292,31 +293,41 @@ internal static class MainMenu
     {
         try
         {
+            bool wasPressed = false;
+
             while (true)
             {
                 GameFiber.Yield();
                 MainMenuPool.ProcessMenus();
-                if (!KeybindHelpers.AreMenuKeysPressed())
-                    continue;
-                if (MenuRequirements()) 
+
+                bool isPressed = KeybindHelpers.AreMenuKeysPressed();
+
+                // Only act on the leading edge (press down), not while held
+                if (isPressed && !wasPressed)
                 {
-                    if (GetPlayerGender() != LastPlayerGender)
+                    if (MenuRequirements())
                     {
-                        LastPlayerGender = GetPlayerGender();
-                        LoadTattoosByZone(Collection.Collections);
+                        if (GetPlayerGender() != LastPlayerGender)
+                        {
+                            LastPlayerGender = GetPlayerGender();
+                            LoadTattoosByZone(Collection.Collections);
+                        }
+
+                        MainUiMenu.Visible = true;
                     }
-                    MainUiMenu.Visible = true; 
+                    else if (MainUiMenu.Visible)
+                    {
+                        MainUiMenu.CurrentItem.Selected = false;
+                        MainUiMenu.Visible = false;
+                        RefreshTattoos();
+                    }
                 }
-                else if (MainUiMenu.Visible)
-                {
-                    MainUiMenu.CurrentItem.Selected = false;
-                    MainUiMenu.Visible = false;
-                    RefreshTattoos();
-                }
+
+                wasPressed = isPressed;
             }
         }
         catch (Exception e)
-        { 
+        {
             Error(e);
         }
     }
