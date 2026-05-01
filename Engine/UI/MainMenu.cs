@@ -1,8 +1,9 @@
-﻿using System.Windows.Forms;
+﻿using System.Drawing;
+using System.Windows.Forms;
 using RAGENativeUI;
 using RAGENativeUI.Elements;
 using RAGENativeUI.PauseMenu;
-using TattooToggler.Engine.Helpers;
+using TattooToggler.IO.JSON;
 using static TattooToggler.EntryPoint;
 
 namespace TattooToggler.Engine.UI;
@@ -21,11 +22,11 @@ internal static class MainMenu
     internal static List<Decoration> LeftLegTattoos { get; set; } = [];
     internal static List<Decoration> RightLegTattoos { get; set; } = [];
 
-    private static Dictionary<ZoneName, List<Decoration>> GetTattoosByZone(List<Collection> collections)
+    private static Dictionary<ZoneName, List<Decoration>> GetTattoosByZone(List<Collection> collections, Gender gender)
     {
         List<Decoration> tattoos = collections
             .SelectMany(c => c.Overlays)
-            .Where(d => d.Type == Type.TYPE_TATTOO)
+            .Where(d => d.Type == Type.TYPE_TATTOO && d.Gender == gender)
             .ToList();
 
         return new Dictionary<ZoneName, List<Decoration>>
@@ -41,7 +42,10 @@ internal static class MainMenu
 
     private static void LoadTattoosByZone(List<Collection> collections)
     {
-        Dictionary<ZoneName, List<Decoration>> tattoosByZone = GetTattoosByZone(collections);
+        Gender playerGender = GetPlayerGender();
+        Normal($"Loading tattoos for gender: {playerGender}");
+
+        Dictionary<ZoneName, List<Decoration>> tattoosByZone = GetTattoosByZone(collections, playerGender);
         HeadTattoos = tattoosByZone[ZoneName.ZONE_HEAD];
         TorsoTattoos = tattoosByZone[ZoneName.ZONE_TORSO];
         LeftArmTattoos = tattoosByZone[ZoneName.ZONE_LEFT_ARM];
@@ -50,8 +54,18 @@ internal static class MainMenu
         RightLegTattoos = tattoosByZone[ZoneName.ZONE_RIGHT_LEG];
     }
 
+    internal static Gender GetPlayerGender()
+    {
+        uint modelHash = (uint)Game.LocalPlayer.Character.Model.Hash;
+        uint maleHash = (uint)Game.GetHashKey("MP_M_FREEMODE_01");
+
+        return modelHash == maleHash ? Gender.GENDER_MALE : Gender.GENDER_FEMALE;
+    }
+    
     #endregion
 
+    internal static Gender LastPlayerGender { get; set; }
+    
     internal static UIMenuListScrollerItem<string> HeadZoneScroller { get; private set; }
     internal static UIMenuListScrollerItem<string> TorsoZoneScroller { get; private set; }
     internal static UIMenuListScrollerItem<string> LeftArmZoneScroller { get; private set; }
@@ -65,6 +79,12 @@ internal static class MainMenu
     internal static readonly UIMenuItem SaveTattoosItem =
         new("Save Current Tattoos", "Save your current tattoos to reapply them later");
 
+    internal static readonly UIMenuItem ClearSavedTattoosItem =
+        new("Clear Saved Tattoos", "Clear your saved tattoos for your current gender");
+    
+    internal static readonly UIMenuItem ApplySavedTattoosItem =
+        new("Apply Saved Tattoos", "Apply your saved tattoos for your current gender");
+    
     internal static readonly UIMenu MainUiMenu = new("Tattoo Toggler", "Select a tattoo to toggle it on/off");
     internal static readonly MenuPool MainMenuPool = new();
 
@@ -91,6 +111,8 @@ internal static class MainMenu
         RightLegZoneScroller = new UIMenuListScrollerItem<string>("Right Leg Tattoos",
             "Select a tattoo to make it permanent with enter, select it again to remove it, scroll to browse.",
             RightLegTattoos.Select(t => t.OverlayName).ToList());
+
+        LastPlayerGender = GetPlayerGender();
         
         MainMenuPool.Add(MainUiMenu);
 
@@ -98,8 +120,13 @@ internal static class MainMenu
         MainUiMenu.AllowCameraMovement = true;
 
         MainUiMenu.AddItems(HeadZoneScroller, TorsoZoneScroller, LeftArmZoneScroller, RightArmZoneScroller,
-            LeftLegZoneScroller, RightLegZoneScroller, RemoveAllTattoosItem, SaveTattoosItem);
+            LeftLegZoneScroller, RightLegZoneScroller, ApplySavedTattoosItem, SaveTattoosItem, RemoveAllTattoosItem, ClearSavedTattoosItem);
 
+        ApplySavedTattoosItem.BackColor = Color.DarkBlue;
+        SaveTattoosItem.BackColor = Color.DarkGreen;
+        RemoveAllTattoosItem.BackColor = Color.DarkRed;
+        ClearSavedTattoosItem.BackColor = Color.DarkRed;
+        
         HeadZoneScroller.IndexChanged += HeadZoneScrollerOnIndexChanged;
         HeadZoneScroller.Activated += HeadZoneScrollerOnActivated;
 
@@ -118,6 +145,35 @@ internal static class MainMenu
         RightLegZoneScroller.IndexChanged += RightLegZoneScrollerOnIndexChanged;
         RightLegZoneScroller.Activated += RightLegZoneScrollerOnActivated;
 
+        RemoveAllTattoosItem.Activated += (_, _) =>
+        {
+            CurrentTattoos.Clear();
+            RefreshTattoos();
+        };
+
+        SaveTattoosItem.Activated += (_, _) =>
+        {
+            SavedTattoosManager.Save(CurrentTattoos, GetPlayerGender());
+            Game.DisplayNotification($"Tattoos saved for {GetPlayerGender()}.");
+        };
+
+        ClearSavedTattoosItem.Activated += (_, _) =>
+        {
+            SavedTattoosManager.ClearSlot(LastPlayerGender);
+        };
+        
+        ApplySavedTattoosItem.Activated += (_, _) =>
+        {
+            List<Decoration> saved = SavedTattoosManager.Load(GetPlayerGender());
+            if (saved.Count == 0)
+            {
+                Game.DisplayNotification($"No saved tattoos found for {GetPlayerGender()}.");
+                return;
+            }
+            CurrentTattoos = saved;
+            RefreshTattoos();
+        };
+        
         GameFiber.StartNew(MenuPoolProcess);
     }
 
@@ -138,8 +194,6 @@ internal static class MainMenu
 
         if (CurrentTattoos.Contains(SelectedTattoo))
         {
-            CurrentTattoos.Remove(SelectedTattoo);
-            RefreshTattoos();
             return;
         }
 
@@ -149,6 +203,13 @@ internal static class MainMenu
 
     private static void AddTattoo()
     {
+        if (SelectedTattoo == null) return;
+        if (CurrentTattoos.Contains(SelectedTattoo))
+        {
+            CurrentTattoos.Remove(SelectedTattoo);
+            RefreshTattoos();
+            return;
+        }
         CurrentTattoos.Add(SelectedTattoo);
     }
 
@@ -238,6 +299,11 @@ internal static class MainMenu
                     continue; // If the button defined in the INI Is pressed trigger the IF State meant
                 if (MenuRequirements()) // Checking menu requirements defined below
                 {
+                    if (GetPlayerGender() != LastPlayerGender)
+                    {
+                        LastPlayerGender = GetPlayerGender();
+                        LoadTattoosByZone(Collection.Collections);
+                    }
                     MainUiMenu.Visible = true; // Making the menu visible
                 }
                 else if (MainUiMenu.Visible)

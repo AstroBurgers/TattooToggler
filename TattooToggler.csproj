@@ -60,6 +60,7 @@
         <Compile Include="Engine\UI\MainMenu.cs" />
         <Compile Include="GlobalUsings.cs" />
         <Compile Include="IO\JSON\DumpParser.cs" />
+        <Compile Include="IO\JSON\SavedTattoosManager.cs" />
         <Compile Include="Main.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>
     </ItemGroup>
