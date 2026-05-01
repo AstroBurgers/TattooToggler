@@ -17,7 +17,7 @@ namespace TattooToggler.IO.JSON
         // A single gender's save slot
         private class SaveSlot
         {
-            public List<SavedDecoration> Tattoos { get; set; } = new();
+            public List<SavedDecoration> Tattoos { get; set; } = [];
         }
 
         // Minimal serializable representation of a Decoration
@@ -68,13 +68,13 @@ namespace TattooToggler.IO.JSON
                 if (slot.Tattoos.Count == 0)
                 {
                     Normal($"[SavedTattoosManager] No saved tattoos found for gender: {gender}");
-                    return new List<Decoration>();
+                    return [];
                 }
 
                 // Resolve saved entries back against the master collection list
                 // so we return full Decoration objects rather than the stripped-down saved version
-                List<Decoration> resolved = new();
-                List<Decoration> unresolved = new();
+                List<Decoration> resolved = [];
+                List<Decoration> unresolved = [];
 
                 foreach (SavedDecoration saved in slot.Tattoos)
                 {
@@ -109,7 +109,7 @@ namespace TattooToggler.IO.JSON
             catch (Exception e)
             {
                 Error(e);
-                return new List<Decoration>();
+                return [];
             }
         }
 
