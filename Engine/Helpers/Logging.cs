@@ -1,7 +1,4 @@
-﻿using System.IO;
-using System.Runtime.CompilerServices;
-
-namespace TattooToggler.Engine.Helpers;
+﻿namespace TattooToggler.Engine.Helpers;
 
 internal static class Logger
 {

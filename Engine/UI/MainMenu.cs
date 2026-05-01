@@ -1,10 +1,7 @@
-﻿using System.Linq;
-using System.Threading;
-using System.Windows.Forms;
+﻿using System.Windows.Forms;
 using RAGENativeUI;
 using RAGENativeUI.Elements;
 using RAGENativeUI.PauseMenu;
-using TattooToggler.Engine.Data;
 using TattooToggler.Engine.Helpers;
 using static TattooToggler.EntryPoint;
 
@@ -77,22 +74,22 @@ internal static class MainMenu
         LoadTattoosByZone(Collection.Collections);
 
         HeadZoneScroller = new UIMenuListScrollerItem<string>("Head Tattoos",
-            "Select a tattoo to make it permanent with enter, scroll to browse.",
+            "Select a tattoo to make it permanent with enter, select it again to remove it, scroll to browse.",
             HeadTattoos.Select(t => t.OverlayName).ToList());
         TorsoZoneScroller = new UIMenuListScrollerItem<string>("Torso Tattoos",
-            "Select a tattoo to make it permanent with enter, scroll to browse.",
+            "Select a tattoo to make it permanent with enter, select it again to remove it, scroll to browse.",
             TorsoTattoos.Select(t => t.OverlayName).ToList());
         LeftArmZoneScroller = new UIMenuListScrollerItem<string>("Left Arm Tattoos",
-            "Select a tattoo to make it permanent with enter, scroll to browse.",
+            "Select a tattoo to make it permanent with enter, select it again to remove it, scroll to browse.",
             LeftArmTattoos.Select(t => t.OverlayName).ToList());
         RightArmZoneScroller = new UIMenuListScrollerItem<string>("Right Arm Tattoos",
-            "Select a tattoo to make it permanent with enter, scroll to browse.",
+            "Select a tattoo to make it permanent with enter, select it again to remove it, scroll to browse.",
             RightArmTattoos.Select(t => t.OverlayName).ToList());
         LeftLegZoneScroller = new UIMenuListScrollerItem<string>("Left Leg Tattoos",
-            "Select a tattoo to make it permanent with enter, scroll to browse.",
+            "Select a tattoo to make it permanent with enter, select it again to remove it, scroll to browse.",
             LeftLegTattoos.Select(t => t.OverlayName).ToList());
         RightLegZoneScroller = new UIMenuListScrollerItem<string>("Right Leg Tattoos",
-            "Select a tattoo to make it permanent with enter, scroll to browse.",
+            "Select a tattoo to make it permanent with enter, select it again to remove it, scroll to browse.",
             RightLegTattoos.Select(t => t.OverlayName).ToList());
         
         MainMenuPool.Add(MainUiMenu);
@@ -124,13 +121,9 @@ internal static class MainMenu
         GameFiber.StartNew(MenuPoolProcess);
     }
 
-    internal static void CycleTattoo(int index, ZoneName zoneName)
+    private static void CycleTattoo(int index, ZoneName zoneName)
     {
-        MainPlayer.ClearTattoos();
-        foreach (Decoration tattoo in CurrentTattoos)
-        {
-            MainPlayer.AddTattoo(Game.GetHashKey(tattoo.CollectionName), Game.GetHashKey(tattoo.OverlayName));
-        }
+        RefreshTattoos();
         
         SelectedTattoo = zoneName switch
         {
@@ -143,7 +136,10 @@ internal static class MainMenu
             _ => null
         };
 
-        if (CurrentTattoos.Contains(SelectedTattoo)) {
+        if (CurrentTattoos.Contains(SelectedTattoo))
+        {
+            CurrentTattoos.Remove(SelectedTattoo);
+            RefreshTattoos();
             return;
         }
 
@@ -154,6 +150,15 @@ internal static class MainMenu
     private static void AddTattoo()
     {
         CurrentTattoos.Add(SelectedTattoo);
+    }
+
+    private static void RefreshTattoos()
+    {
+        MainPlayer.ClearTattoos();
+        foreach (Decoration tattoo in CurrentTattoos)
+        {
+            MainPlayer.AddTattoo(Game.GetHashKey(tattoo.CollectionName), Game.GetHashKey(tattoo.OverlayName));
+        }
     }
     
     #region Handlers
