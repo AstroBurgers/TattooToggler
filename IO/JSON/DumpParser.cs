@@ -49,10 +49,11 @@ internal static class TattooDataParser
                     overlayHash: overlayHash,
                     gender: ParseGender(item["Gender"]?.ToString()),
                     type: ParseType(item["Type"]?.ToString()),
-                    zoneName: ParseZone(item["Zone"]?.ToString()),
+                    zoneName: ParseZone(item["ZoneName"]?.ToString()),
                     garment: item["Garment"]?.ToString(),
                     price: item["Price"]?.Value<int>() ?? 0,
-                    awardLevel: item["AwardLevel"]?.Value<int>() ?? 0
+                    awardLevel: item["AwardLevel"]?.Value<int>() ?? 0,
+                    collectionName: collectionName
                 );
 
                 Normal(

@@ -26,7 +26,7 @@ namespace TattooToggler.Engine.Data
 {
     internal class Decoration
     {
-        public Decoration(string overlayName, uint overlayHash, Gender gender, Type type, ZoneName zoneName, string garment, int price, int awardLevel)
+        public Decoration(string overlayName, uint overlayHash, Gender gender, Type type, ZoneName zoneName, string garment, int price, int awardLevel, string collectionName)
         {
             OverlayName = overlayName;
             OverlayHash = overlayHash;
@@ -36,6 +36,7 @@ namespace TattooToggler.Engine.Data
             Garment = garment;
             Price = price;
             AwardLevel = awardLevel;
+            CollectionName = collectionName;
         }
 
         internal string OverlayName { get; set; }
@@ -48,5 +49,6 @@ namespace TattooToggler.Engine.Data
         internal string Garment { get; set; }
         internal int Price { get; set; }
         internal int AwardLevel { get; set; }
+        internal string CollectionName { get; set; }
     }
 }

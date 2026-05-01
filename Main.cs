@@ -6,6 +6,9 @@ namespace TattooToggler;
 
 public class EntryPoint
 {
+    internal static Ped MainPlayer => Game.LocalPlayer.Character;
+    
+    
     internal static void Main()
     {
         try
@@ -13,6 +16,7 @@ public class EntryPoint
             Game.DisplayNotification("go fuck yourself :)");
             Collections = IO.JSON.TattooDataParser.ParseFromFile(@"plugins/TattooToggler/TattooData/TattooData.json");
             Game.DisplayNotification($"Parsed: {Collections}");
+            Engine.UI.MainMenu.CreateMenu();
         }
         catch (Exception e)
         {

@@ -1,7 +1,12 @@
 ﻿using System.Linq;
+using System.Threading;
+using System.Windows.Forms;
 using RAGENativeUI;
 using RAGENativeUI.Elements;
+using RAGENativeUI.PauseMenu;
 using TattooToggler.Engine.Data;
+using TattooToggler.Engine.Helpers;
+using static TattooToggler.EntryPoint;
 
 namespace TattooToggler.Engine.UI;
 
@@ -50,28 +55,204 @@ internal static class MainMenu
 
     #endregion
 
-    internal static readonly UIMenuNumericScrollerItem<int> HeadZoneScroller = new("Head Tattoos", "Select a tattoo to make it permanent with enter, scroll to browse.", 0, HeadTattoos.Count, 1);
-    internal static readonly UIMenuNumericScrollerItem<int> TorsoZoneScroller = new("Torso Tattoos", "Select a tattoo to make it permanent with enter, scroll to browse.", 0, TorsoTattoos.Count, 1);
-    internal static readonly UIMenuNumericScrollerItem<int> LeftArmZoneScroller = new("Left Arm Tattoos", "Select a tattoo to make it permanent with enter, scroll to browse.", 0, LeftArmTattoos.Count, 1);
-    internal static readonly UIMenuNumericScrollerItem<int> RightArmZoneScroller = new("Right Arm Tattoos", "Select a tattoo to make it permanent with enter, scroll to browse.", 0, RightArmTattoos.Count, 1);
-    internal static readonly UIMenuNumericScrollerItem<int> LeftLegZoneScroller = new("Left Leg Tattoos", "Select a tattoo to make it permanent with enter, scroll to browse.", 0, LeftLegTattoos.Count, 1);
-    internal static readonly UIMenuNumericScrollerItem<int> RightLegZoneScroller = new("Right Leg Tattoos", "Select a tattoo to make it permanent with enter, scroll to browse.", 0, RightLegTattoos.Count, 1);
-    
-    internal static readonly UIMenuItem RemoveAllTattoosItem = new("Remove All Tattoos", "Remove all tattoos from your character");
-    internal static readonly UIMenuItem SaveTattoosItem = new("Save Current Tattoos", "Save your current tattoos to reapply them later");
-    
-    internal static readonly UIMenu MainUIMenu = new("Tattoo Toggler", "Select a tattoo to toggle it on/off");
+    internal static UIMenuListScrollerItem<string> HeadZoneScroller { get; private set; }
+    internal static UIMenuListScrollerItem<string> TorsoZoneScroller { get; private set; }
+    internal static UIMenuListScrollerItem<string> LeftArmZoneScroller { get; private set; }
+    internal static UIMenuListScrollerItem<string> RightArmZoneScroller { get; private set; }
+    internal static UIMenuListScrollerItem<string> LeftLegZoneScroller { get; private set; }
+    internal static UIMenuListScrollerItem<string> RightLegZoneScroller { get; private set; }
+
+    internal static readonly UIMenuItem RemoveAllTattoosItem =
+        new("Remove All Tattoos", "Remove all tattoos from your character");
+
+    internal static readonly UIMenuItem SaveTattoosItem =
+        new("Save Current Tattoos", "Save your current tattoos to reapply them later");
+
+    internal static readonly UIMenu MainUiMenu = new("Tattoo Toggler", "Select a tattoo to toggle it on/off");
     internal static readonly MenuPool MainMenuPool = new();
 
     internal static void CreateMenu()
     {
         Normal("Creating main menu...");
         LoadTattoosByZone(Collection.Collections);
-        MainMenuPool.Add(MainUIMenu);
 
-        MainUIMenu.MouseControlsEnabled = false;
-        MainUIMenu.AllowCameraMovement = true;
+        HeadZoneScroller = new UIMenuListScrollerItem<string>("Head Tattoos",
+            "Select a tattoo to make it permanent with enter, scroll to browse.",
+            HeadTattoos.Select(t => t.OverlayName).ToList());
+        TorsoZoneScroller = new UIMenuListScrollerItem<string>("Torso Tattoos",
+            "Select a tattoo to make it permanent with enter, scroll to browse.",
+            TorsoTattoos.Select(t => t.OverlayName).ToList());
+        LeftArmZoneScroller = new UIMenuListScrollerItem<string>("Left Arm Tattoos",
+            "Select a tattoo to make it permanent with enter, scroll to browse.",
+            LeftArmTattoos.Select(t => t.OverlayName).ToList());
+        RightArmZoneScroller = new UIMenuListScrollerItem<string>("Right Arm Tattoos",
+            "Select a tattoo to make it permanent with enter, scroll to browse.",
+            RightArmTattoos.Select(t => t.OverlayName).ToList());
+        LeftLegZoneScroller = new UIMenuListScrollerItem<string>("Left Leg Tattoos",
+            "Select a tattoo to make it permanent with enter, scroll to browse.",
+            LeftLegTattoos.Select(t => t.OverlayName).ToList());
+        RightLegZoneScroller = new UIMenuListScrollerItem<string>("Right Leg Tattoos",
+            "Select a tattoo to make it permanent with enter, scroll to browse.",
+            RightLegTattoos.Select(t => t.OverlayName).ToList());
         
-        MainUIMenu.AddItems();
+        MainMenuPool.Add(MainUiMenu);
+
+        MainUiMenu.MouseControlsEnabled = false;
+        MainUiMenu.AllowCameraMovement = true;
+
+        MainUiMenu.AddItems(HeadZoneScroller, TorsoZoneScroller, LeftArmZoneScroller, RightArmZoneScroller,
+            LeftLegZoneScroller, RightLegZoneScroller, RemoveAllTattoosItem, SaveTattoosItem);
+
+        HeadZoneScroller.IndexChanged += HeadZoneScrollerOnIndexChanged;
+        HeadZoneScroller.Activated += HeadZoneScrollerOnActivated;
+
+        TorsoZoneScroller.IndexChanged += TorsoZoneScrollerOnIndexChanged;
+        TorsoZoneScroller.Activated += TorsoZoneScrollerOnActivated;
+
+        LeftArmZoneScroller.IndexChanged += LeftArmZoneScrollerOnIndexChanged;
+        LeftArmZoneScroller.Activated += LeftArmZoneScrollerOnActivated;
+
+        RightArmZoneScroller.IndexChanged += RightArmZoneScrollerOnIndexChanged;
+        RightArmZoneScroller.Activated += RightArmZoneScrollerOnActivated;
+
+        LeftLegZoneScroller.IndexChanged += LeftLegZoneScrollerOnIndexChanged;
+        LeftLegZoneScroller.Activated += LeftLegZoneScrollerOnActivated;
+
+        RightLegZoneScroller.IndexChanged += RightLegZoneScrollerOnIndexChanged;
+        RightLegZoneScroller.Activated += RightLegZoneScrollerOnActivated;
+
+        GameFiber.StartNew(MenuPoolProcess);
+    }
+
+    internal static void CycleTattoo(int index, ZoneName zoneName)
+    {
+        MainPlayer.ClearTattoos();
+        foreach (Decoration tattoo in CurrentTattoos)
+        {
+            MainPlayer.AddTattoo(Game.GetHashKey(tattoo.CollectionName), Game.GetHashKey(tattoo.OverlayName));
+        }
+        
+        SelectedTattoo = zoneName switch
+        {
+            ZoneName.ZONE_HEAD => HeadTattoos.ElementAtOrDefault(index),
+            ZoneName.ZONE_TORSO => TorsoTattoos.ElementAtOrDefault(index),
+            ZoneName.ZONE_LEFT_ARM => LeftArmTattoos.ElementAtOrDefault(index),
+            ZoneName.ZONE_RIGHT_ARM => RightArmTattoos.ElementAtOrDefault(index),
+            ZoneName.ZONE_LEFT_LEG => LeftLegTattoos.ElementAtOrDefault(index),
+            ZoneName.ZONE_RIGHT_LEG => RightLegTattoos.ElementAtOrDefault(index),
+            _ => null
+        };
+
+        if (CurrentTattoos.Contains(SelectedTattoo)) {
+            return;
+        }
+
+        if (SelectedTattoo == null) return;
+        MainPlayer.AddTattoo(Game.GetHashKey(SelectedTattoo.CollectionName), Game.GetHashKey(SelectedTattoo.OverlayName));
+    }
+
+    private static void AddTattoo()
+    {
+        CurrentTattoos.Add(SelectedTattoo);
+    }
+    
+    #region Handlers
+
+    private static void RightLegZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
+    {
+        AddTattoo();
+    }
+
+    private static void RightLegZoneScrollerOnIndexChanged(UIMenuScrollerItem sender, int oldIndex, int newIndex)
+    {
+        CycleTattoo(newIndex, ZoneName.ZONE_RIGHT_LEG);
+    }
+
+    private static void LeftLegZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
+    {
+        AddTattoo();
+    }
+
+    private static void LeftLegZoneScrollerOnIndexChanged(UIMenuScrollerItem sender, int oldIndex, int newIndex)
+    {
+        CycleTattoo(newIndex, ZoneName.ZONE_LEFT_LEG);
+    }
+
+    private static void RightArmZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
+    {
+        AddTattoo();
+    }
+
+    private static void RightArmZoneScrollerOnIndexChanged(UIMenuScrollerItem sender, int oldIndex, int newIndex)
+    {
+        CycleTattoo(newIndex, ZoneName.ZONE_RIGHT_ARM);
+    }
+
+    private static void LeftArmZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
+    {
+        AddTattoo();
+    }
+
+    private static void LeftArmZoneScrollerOnIndexChanged(UIMenuScrollerItem sender, int oldIndex, int newIndex)
+    {
+        CycleTattoo(newIndex, ZoneName.ZONE_LEFT_ARM);
+    }
+
+    private static void TorsoZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
+    {
+        AddTattoo();
+    }
+
+    private static void TorsoZoneScrollerOnIndexChanged(UIMenuScrollerItem sender, int oldIndex, int newIndex)
+    {
+        CycleTattoo(newIndex, ZoneName.ZONE_TORSO);
+    }
+
+    private static void HeadZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
+    {
+        AddTattoo();
+    }
+
+    private static void HeadZoneScrollerOnIndexChanged(UIMenuScrollerItem sender, int oldIndex, int newIndex)
+    {
+        CycleTattoo(newIndex, ZoneName.ZONE_HEAD);
+    }
+
+    #endregion
+
+
+    private static void MenuPoolProcess()
+    {
+        try
+        {
+            while (true)
+            {
+                GameFiber.Yield();
+                MainMenuPool.ProcessMenus();
+                if (!Game.IsKeyDown(Keys.K))
+                    continue; // If the button defined in the INI Is pressed trigger the IF State meant
+                if (MenuRequirements()) // Checking menu requirements defined below
+                {
+                    MainUiMenu.Visible = true; // Making the menu visible
+                }
+                else if (MainUiMenu.Visible)
+                {
+                    MainUiMenu.CurrentItem.Selected = false;
+
+                    MainUiMenu.Visible = false; // Making the menu no longer visible
+                }
+            }
+        }
+        catch (Exception e)
+        { 
+            Error(e);
+        }
+    }
+
+    private static bool MenuRequirements() // The aforementioned menu requirements
+    {
+        return
+            !UIMenu.IsAnyMenuVisible &&
+            !TabView.IsAnyPauseMenuVisible; // Makes sure that the player is not paused/in a Compulite style menu. Checks if any other menus are open
     }
 }
