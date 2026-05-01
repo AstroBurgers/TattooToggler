@@ -1,5 +1,4 @@
-﻿using Rage;
-using Rage.Native;
+﻿using Rage.Native;
 
 namespace TattooToggler.Engine.Helpers;
 

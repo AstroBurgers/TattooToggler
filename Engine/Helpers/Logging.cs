@@ -1,7 +1,5 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Runtime.CompilerServices;
-using Rage;
 
 namespace TattooToggler.Engine.Helpers;
 

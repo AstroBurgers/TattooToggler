@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace TattooToggler.Engine.Data;
+﻿namespace TattooToggler.Engine.Data;
 
 internal class Collection(string collectionName, uint collectionHash, List<Decoration> overlays)
 {

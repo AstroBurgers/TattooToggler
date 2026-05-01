@@ -58,6 +58,7 @@
         <Compile Include="Engine\Helpers\Logging.cs" />
         <Compile Include="Engine\Helpers\TattooHelpers.cs" />
         <Compile Include="Engine\UI\MainMenu.cs" />
+        <Compile Include="GlobalUsings.cs" />
         <Compile Include="IO\JSON\DumpParser.cs" />
         <Compile Include="Main.cs" />
         <Compile Include="Properties\AssemblyInfo.cs"/>

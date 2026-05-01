@@ -1,6 +1,3 @@
-
-using System;
-using Rage;
 using static TattooToggler.Engine.Data.Collection;
 
 [assembly: Rage.Attributes.Plugin("Tattoo Toggler", Description = "Someone say irreversible decisions?", Author = "Astro")]

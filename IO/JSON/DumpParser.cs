@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json.Linq;
 using TattooToggler.Engine.Data;
-using static TattooToggler.Engine.Helpers.Logger;
 
 namespace TattooToggler.IO.JSON;
 
