@@ -1,6 +1,6 @@
-using System.Windows.Forms;
+using MessagePack;
 using TattooToggler.Engine.Data;
-using TattooToggler.IO.JSON;
+using TattooToggler.IO.Parsing;
 using static TattooToggler.Engine.Data.Collection;
 
 [assembly: Rage.Attributes.Plugin("Tattoo Toggler", Description = "Someone say irreversible decisions?", Author = "Astro")]
@@ -22,7 +22,7 @@ public class EntryPoint
 
             // 1. Tattoo data
             Normal("Parsing tattoo data...");
-            Collections = TattooDataParser.ParseFromFile(@"plugins/TattooToggler/TattooData/TattooData.json");
+            Collections = MessagePackSerializer.Deserialize<List<Collection>>(File.ReadAllBytes(@"plugins/TattooToggler/TattooData/tattoos.dat"));
 
             if (Collections == null)
                 throw new Exception("Tattoo collections failed to load.");

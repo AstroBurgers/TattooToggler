@@ -1,11 +1,10 @@
 ﻿using System.Drawing;
 using System.Threading;
-using System.Windows.Forms;
 using RAGENativeUI;
 using RAGENativeUI.Elements;
 using RAGENativeUI.PauseMenu;
 using TattooToggler.Engine.Data;
-using TattooToggler.IO.JSON;
+using TattooToggler.IO.Parsing;
 using static TattooToggler.EntryPoint;
 
 namespace TattooToggler.Engine.UI;
@@ -24,22 +23,31 @@ internal static class MainMenu
     internal static List<Decoration> LeftLegTattoos { get; set; } = [];
     internal static List<Decoration> RightLegTattoos { get; set; } = [];
 
-    private static Dictionary<ZoneName, List<Decoration>> GetTattoosByZone(List<Collection> collections, Gender gender)
+    private static Dictionary<ZoneName, List<Decoration>> GetTattoosByZone(
+        List<Collection> collections,
+        Gender gender)
     {
-        List<Decoration> tattoos = collections
-            .SelectMany(c => c.Overlays)
-            .Where(d => d.Type == Type.TYPE_TATTOO && d.Gender == gender)
-            .ToList();
-
-        return new Dictionary<ZoneName, List<Decoration>>
+        Dictionary<ZoneName, List<Decoration>> result = new()
         {
-            { ZoneName.ZONE_HEAD, tattoos.Where(d => d.ZoneName == ZoneName.ZONE_HEAD).ToList() },
-            { ZoneName.ZONE_TORSO, tattoos.Where(d => d.ZoneName == ZoneName.ZONE_TORSO).ToList() },
-            { ZoneName.ZONE_LEFT_ARM, tattoos.Where(d => d.ZoneName == ZoneName.ZONE_LEFT_ARM).ToList() },
-            { ZoneName.ZONE_RIGHT_ARM, tattoos.Where(d => d.ZoneName == ZoneName.ZONE_RIGHT_ARM).ToList() },
-            { ZoneName.ZONE_LEFT_LEG, tattoos.Where(d => d.ZoneName == ZoneName.ZONE_LEFT_LEG).ToList() },
-            { ZoneName.ZONE_RIGHT_LEG, tattoos.Where(d => d.ZoneName == ZoneName.ZONE_RIGHT_LEG).ToList() },
+            [ZoneName.ZONE_HEAD] = [],
+            [ZoneName.ZONE_TORSO] = [],
+            [ZoneName.ZONE_LEFT_ARM] = [],
+            [ZoneName.ZONE_RIGHT_ARM] = [],
+            [ZoneName.ZONE_LEFT_LEG] = [],
+            [ZoneName.ZONE_RIGHT_LEG] = []
         };
+
+        foreach (Decoration decoration in collections.SelectMany(c => c.Overlays))
+        {
+            if (decoration.Type != DecorationType.TYPE_TATTOO ||
+                decoration.Gender != gender)
+                continue;
+
+            if (result.TryGetValue(decoration.ZoneName, out List<Decoration> list))
+                list.Add(decoration);
+        }
+
+        return result;
     }
 
     private static void LoadTattoosByZone(List<Collection> collections)
@@ -214,6 +222,7 @@ internal static class MainMenu
         }
 
         CurrentTattoos.Add(SelectedTattoo);
+        RefreshTattoos();
     }
 
     private static void RefreshTattoos()
@@ -221,25 +230,17 @@ internal static class MainMenu
         MainPlayer.ClearTattoos();
         foreach (Decoration tattoo in CurrentTattoos)
         {
-            MainPlayer.AddTattoo(Game.GetHashKey(tattoo.CollectionName), Game.GetHashKey(tattoo.OverlayName));
+            MainPlayer.AddTattoo(Game.GetHashKey(tattoo.CollectionName),
+                Game.GetHashKey(tattoo.OverlayName));
         }
     }
 
     #region Handlers
-
-    private static void RightLegZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
-    {
-        AddTattoo();
-    }
-
+    
+    // Index change handlers
     private static void RightLegZoneScrollerOnIndexChanged(UIMenuScrollerItem sender, int oldIndex, int newIndex)
     {
         CycleTattoo(newIndex, ZoneName.ZONE_RIGHT_LEG);
-    }
-
-    private static void LeftLegZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
-    {
-        AddTattoo();
     }
 
     private static void LeftLegZoneScrollerOnIndexChanged(UIMenuScrollerItem sender, int oldIndex, int newIndex)
@@ -247,19 +248,9 @@ internal static class MainMenu
         CycleTattoo(newIndex, ZoneName.ZONE_LEFT_LEG);
     }
 
-    private static void RightArmZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
-    {
-        AddTattoo();
-    }
-
     private static void RightArmZoneScrollerOnIndexChanged(UIMenuScrollerItem sender, int oldIndex, int newIndex)
     {
         CycleTattoo(newIndex, ZoneName.ZONE_RIGHT_ARM);
-    }
-
-    private static void LeftArmZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
-    {
-        AddTattoo();
     }
 
     private static void LeftArmZoneScrollerOnIndexChanged(UIMenuScrollerItem sender, int oldIndex, int newIndex)
@@ -267,26 +258,54 @@ internal static class MainMenu
         CycleTattoo(newIndex, ZoneName.ZONE_LEFT_ARM);
     }
 
-    private static void TorsoZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
-    {
-        AddTattoo();
-    }
-
     private static void TorsoZoneScrollerOnIndexChanged(UIMenuScrollerItem sender, int oldIndex, int newIndex)
     {
         CycleTattoo(newIndex, ZoneName.ZONE_TORSO);
     }
 
-    private static void HeadZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
-    {
-        AddTattoo();
-    }
-
+    
+    // Activation handlers
     private static void HeadZoneScrollerOnIndexChanged(UIMenuScrollerItem sender, int oldIndex, int newIndex)
     {
         CycleTattoo(newIndex, ZoneName.ZONE_HEAD);
     }
 
+    private static void HeadZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
+    {
+        SelectedTattoo = HeadTattoos.ElementAtOrDefault(HeadZoneScroller.Index);
+        AddTattoo();
+    }
+
+    private static void TorsoZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
+    {
+        SelectedTattoo = TorsoTattoos.ElementAtOrDefault(TorsoZoneScroller.Index);
+        AddTattoo();
+    }
+
+    private static void LeftArmZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
+    {
+        SelectedTattoo = LeftArmTattoos.ElementAtOrDefault(LeftArmZoneScroller.Index);
+        AddTattoo();
+    }
+
+    private static void RightArmZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
+    {
+        SelectedTattoo = RightArmTattoos.ElementAtOrDefault(RightArmZoneScroller.Index);
+        AddTattoo();
+    }
+
+    private static void LeftLegZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
+    {
+        SelectedTattoo = LeftLegTattoos.ElementAtOrDefault(LeftLegZoneScroller.Index);
+        AddTattoo();
+    }
+
+    private static void RightLegZoneScrollerOnActivated(UIMenu sender, UIMenuItem selectedItem)
+    {
+        SelectedTattoo = RightLegTattoos.ElementAtOrDefault(RightLegZoneScroller.Index);
+        AddTattoo();
+    }
+    
     #endregion
 
 

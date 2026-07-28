@@ -1,11 +1,32 @@
-﻿namespace TattooToggler.Engine.Data;
+﻿using MessagePack;
 
-internal class Collection(string collectionName, uint collectionHash, List<Decoration> overlays)
+namespace TattooToggler.Engine.Data;
+
+[MessagePackObject]
+public class Collection
 {
-    internal static List<Collection> Collections { get; set; } = new();
+    [Key(0)] public string CollectionName { get; set; }
 
-    internal string CollectionName { get; set; } = collectionName;
-    internal uint CollectionHash { get; set; } = collectionHash;
+    [Key(1)] public uint CollectionHash { get; set; }
 
-    internal List<Decoration> Overlays { get; set; } = overlays;
+    [Key(2)] public List<Decoration> Overlays { get; set; }
+
+    // This is runtime state, not serialized.
+    [IgnoreMember] public static List<Collection> Collections { get; set; } = [];
+
+    public Collection()
+    {
+        CollectionName = string.Empty;
+        Overlays = [];
+    }
+
+    public Collection(
+        string collectionName,
+        uint collectionHash,
+        List<Decoration> overlays)
+    {
+        CollectionName = collectionName;
+        CollectionHash = collectionHash;
+        Overlays = overlays;
+    }
 }

@@ -1,4 +1,8 @@
-﻿internal enum ZoneName
+﻿using MessagePack;
+
+namespace TattooToggler.Engine.Data;
+
+public enum ZoneName
 {
     ZONE_TORSO = 0,
     ZONE_HEAD = 1,
@@ -10,45 +14,46 @@
     ZONE_INVALID = 7
 }
 
-internal enum Gender
+public enum Gender
 {
     GENDER_MALE = 0,
     GENDER_FEMALE = 1
 }
 
-internal enum Type
+public enum DecorationType
 {
     TYPE_TATTOO = 0,
     TYPE_BADGE = 1
 }
 
-namespace TattooToggler.Engine.Data
+[MessagePackObject]
+public class Decoration
 {
-    internal class Decoration
-    {
-        public Decoration(string overlayName, uint overlayHash, Gender gender, Type type, ZoneName zoneName, string garment, int price, int awardLevel, string collectionName)
-        {
-            OverlayName = overlayName;
-            OverlayHash = overlayHash;
-            Gender = gender;
-            Type = type;
-            ZoneName = zoneName;
-            Garment = garment;
-            Price = price;
-            AwardLevel = awardLevel;
-            CollectionName = collectionName;
-        }
+    [Key(0)] public string OverlayName { get; set; }
 
-        internal string OverlayName { get; set; }
-        internal uint OverlayHash { get; set; }
-        
-        internal Gender Gender { get; set; }
-        internal Type Type { get; set; }
-        internal ZoneName ZoneName { get; set; }
-        
-        internal string Garment { get; set; }
-        internal int Price { get; set; }
-        internal int AwardLevel { get; set; }
-        internal string CollectionName { get; set; }
+    [Key(1)] public uint OverlayHash { get; set; }
+
+    [Key(2)] public Gender Gender { get; set; }
+
+    [Key(3)] public DecorationType Type { get; set; }
+
+    [Key(4)] public ZoneName ZoneName { get; set; }
+
+    [Key(5)] public string CollectionName { get; set; }
+
+    public Decoration(
+        string overlayName,
+        uint overlayHash,
+        Gender gender,
+        DecorationType type,
+        ZoneName zoneName,
+        string collectionName)
+    {
+        OverlayName = overlayName;
+        OverlayHash = overlayHash;
+        Gender = gender;
+        Type = type;
+        ZoneName = zoneName;
+        CollectionName = collectionName;
     }
 }
